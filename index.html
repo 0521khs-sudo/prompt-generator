@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 상품 프롬프트 생성기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --border: #e8e5e0;
+  --text: #1c1c1a;
+  --text-sub: #6b6b68;
+  --text-hint: #a8a8a5;
+  --accent: #1a56db;
+  --accent-bg: #eff6ff;
+  --green: #0d9488;
+  --green-bg: #f0fdfa;
+  --amber-bg: #fffbeb;
+  --red-light: #fef2f2;
+  --red: #dc2626;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --shadow: 0 1px 4px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  min-height: 100vh;
+}
+
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.logo-text { font-size: 15px; font-weight: 700; }
+.logo-sub { font-size: 11px; color: var(--text-hint); margin-left: 4px; }
+
+.main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media(max-width:720px){
+  .main { grid-template-columns: 1fr; }
+  .right-panel { position: static !important; }
+}
+
+.left-panel { display: flex; flex-direction: column; gap: 14px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-head {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.step {
+  width: 22px; height: 22px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.card-head h3 { font-size: 13px; font-weight: 700; }
+.card-head p { font-size: 11px; color: var(--text-hint); margin-top: 1px; }
+
+/* 테이블 */
+.opt-table { width: 100%; border-collapse: collapse; }
+.opt-table tr { border-bottom: 1px solid var(--border); }
+.opt-table tr:last-child { border-bottom: none; }
+.opt-table td { padding: 8px 18px; vertical-align: middle; }
+.opt-table td.lbl {
+  width: 95px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-sub);
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.opt-table td.lbl small { display: block; font-size: 10px; color: var(--text-hint); margin-top: 1px; }
+
+select, input[type=text] {
+  width: 100%;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fafaf9;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  transition: border-color .15s;
+}
+select:focus, input[type=text]:focus { border-color: var(--accent); background: #fff; }
+input[type=text] { cursor: text; }
+
+/* 오른쪽 */
+.right-panel { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 14px; }
+
+.result-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; }
+
+.result-head {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.result-head h3 { font-size: 13px; font-weight: 700; }
+.badge {
+  font-size: 10px; font-weight: 700;
+  padding: 3px 9px; border-radius: 20px;
+  background: var(--accent-bg); color: var(--accent);
+}
+
+.btn-top-row {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+
+.result-body { padding: 16px 18px; }
+
+.out-label {
+  font-size: 10px; font-weight: 700;
+  color: var(--text-hint);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.out-en {
+  background: #fafaf9;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--text);
+  min-height: 160px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.out-en.ph { color: var(--text-hint); font-style: italic; }
+.out-ko {
+  background: var(--green-bg);
+  border: 1px solid #99f6e4;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.75;
+  color: #0f766e;
+  margin-top: 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.out-ko.ph { color: var(--text-hint); font-style: italic; }
+.char-count { font-size: 11px; color: var(--text-hint); text-align: right; margin-top: 5px; }
+
+button {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 12px; font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  transition: all .15s;
+}
+button:hover { background: var(--bg); }
+button:active { transform: scale(.97); }
+button.b-en { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+button.b-ko { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+button.b-reset { background: var(--red-light); border-color: var(--red); color: var(--red); }
+.ok { background: #dcfce7 !important; border-color: #16a34a !important; color: #15803d !important; }
+
+.tip-card {
+  background: var(--amber-bg);
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  font-size: 12px;
+  line-height: 1.75;
+  color: #78350f;
+}
+.tip-card strong { display: block; font-size: 13px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:20px;">✨</span>
+  <div>
+    <span class="logo-text">AI 상품 프롬프트 생성기</span>
+    <span class="logo-sub">— 옵션 선택만으로 맞춤 프롬프트 자동 완성</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- 왼쪽 -->
+  <div class="left-panel">
+
+    <div class="card">
+      <div class="card-head">
+        <div class="step">1</div>
+        <div><h3>제품 카테고리</h3><p>판매하는 상품 종류를 선택하세요</p></div>
+      </div>
+      <table class="opt-table">
+        <tr>
+          <td class="lbl">카테고리<small>제품 종류</small></td>
+          <td>
+            <select id="s1" onchange="go()">
+              <option value="">선택하기</option>
+              <optgroup label="── 생활용품 ──">
+                <option value="storage basket, home organizer box">수납함 / 정리함</option>
+                <option value="cleaning brush and tools set">청소 도구</option>
+                <option value="laundry detergent bottle, fabric softener">세탁 용품</option>
+                <option value="modern waste bin, recycling container">쓰레기통</option>
+                <option value="microfiber cleaning cloth, duster">극세사 걸레</option>
+                <option value="rubber household gloves">청소 장갑</option>
+                <option value="air freshener, odor eliminator spray">방향제 / 탈취제</option>
+              </optgroup>
+              <optgroup label="── 화장실용품 ──">
+                <option value="toothbrush and toothpaste set">칫솔 / 치약</option>
+                <option value="shampoo bottle and body wash set">샴푸 / 바디워시</option>
+                <option value="liquid hand soap dispenser">핸드워시 / 비누</option>
+                <option value="bathroom mat, non-slip bath rug">욕실 매트</option>
+                <option value="neatly folded soft bath towels">타월 / 수건</option>
+                <option value="glass corner bathroom shelf with chrome brackets">욕실 코너 유리 선반</option>
+                <option value="bathroom shelf caddy organizer">욕실 수납 선반</option>
+                <option value="toilet brush set, toilet cleaner">변기 청소 용품</option>
+                <option value="bath loofah, shower sponge, bath accessories">목욕 소품</option>
+              </optgroup>
+              <optgroup label="── 주방용품 ──">
+                <option value="non-stick frying pan and pot set">프라이팬 / 냄비</option>
+                <option value="professional kitchen knife and cutting board">칼 / 도마</option>
+                <option value="ceramic mixing bowls, dinnerware set">그릇 / 볼</option>
+                <option value="airtight food storage containers">밀폐용기</option>
+                <option value="dish soap, kitchen detergent bottle">주방 세제</option>
+                <option value="kitchen towel, dish cloth set">행주 / 주방타월</option>
+                <option value="cooking utensil set, spatula, ladle, tongs">조리도구 세트</option>
+                <option value="coffee dripper, pour-over kettle, tea set">커피 / 차 용품</option>
+              </optgroup>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">상태<small>제품 표현</small></td>
+          <td>
+            <select id="s2" onchange="go()">
+              <option value="">선택하기</option>
+              <optgroup label="── 깔끔한 상태 ──">
+                <option value="brand new pristine condition, just unboxed">개봉 직후 새 제품</option>
+                <option value="neatly arranged, tidy and clean">가지런히 정돈된</option>
+                <option value="gleaming clean, freshly washed">깨끗하게 세척된</option>
+                <option value="minimalist display, simple and clean">미니멀하게 세팅</option>
+              </optgroup>
+              <optgroup label="── 라이프스타일 ──">
+                <option value="in-use lifestyle scene, natural everyday moment">실제 사용 중인 장면</option>
+                <option value="hands holding the product, demonstrating use">손으로 제품 잡은 장면</option>
+                <option value="water splashing, wet and fresh scene">물 튀기는 생동감</option>
+              </optgroup>
+              <optgroup label="── 포장 / 세트 ──">
+                <option value="original retail packaging display">원래 포장 그대로</option>
+                <option value="gift set arrangement, bundled product set">선물 세트 구성</option>
+                <option value="multiple products grouped, product family shot">여러 제품 묶음 샷</option>
+              </optgroup>
+            </select>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="step">2</div>
+        <div><h3>촬영 / 배경 설정</h3><p>연출 방식과 배경을 선택하세요</p></div>
+      </div>
+      <table class="opt-table">
+        <tr>
+          <td class="lbl">촬영 연출<small>장면 구성</small></td>
+          <td>
+            <select id="s3" onchange="go()">
+              <option value="">선택하기</option>
+              <optgroup label="── 정적 컷 ──">
+                <option value="clean hero product still shot">제품 단독 스틸컷</option>
+                <option value="flat lay, overhead arranged composition">플랫레이 (탑뷰)</option>
+                <option value="floating product, levitation shot">공중 부양 연출</option>
+                <option value="macro close-up detail, texture emphasis">클로즈업 디테일</option>
+              </optgroup>
+              <optgroup label="── 동적 연출 ──">
+                <option value="water droplets splashing, high speed moment">물방울 튀기는 순간</option>
+                <option value="soap bubbles foaming, lather close-up">거품 클로즈업</option>
+                <option value="steam rising, warm cozy atmosphere">김이 오르는 연출</option>
+              </optgroup>
+              <optgroup label="── 라이프스타일 ──">
+                <option value="in bathroom setting, real life use scene">욕실 실사 환경</option>
+                <option value="in kitchen countertop setting">주방 조리대 환경</option>
+                <option value="on organized shelf, home interior">정돈된 선반</option>
+              </optgroup>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">포장 상태<small>패키징</small></td>
+          <td>
+            <select id="s4" onchange="go()">
+              <option value="">선택하기</option>
+              <optgroup label="── 유통/판매 포장 ──">
+                <option value="bundled with twine rope tie">짚/노끈으로 묶은 다발</option>
+                <option value="transparent plastic wrap packaging">투명 비닐 랩 포장</option>
+                <option value="fresh-keep zip bag packaging">신선 보관용 지퍼백</option>
+                <option value="eco-friendly paper label wrap">친환경 종이 띠지</option>
+              </optgroup>
+              <optgroup label="── 박스/대량 ──">
+                <option value="corrugated cardboard box, factory direct">골판지 박스</option>
+                <option value="wooden crate, vintage rustic packaging">나무 궤짝 (빈티지)</option>
+              </optgroup>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">배경/장소<small>세트 분위기</small></td>
+          <td>
+            <select id="s5" onchange="go()">
+              <option value="">선택하기</option>
+              <option value="pure white seamless studio background">깔끔한 화이트 스튜디오</option>
+              <option value="dark stone surface, premium moody background">차분한 다크 스톤 (고급)</option>
+              <option value="warm wooden kitchen countertop surface">따뜻한 원목 주방</option>
+              <option value="modern bathroom tiles, clean white grout">모던 욕실 타일</option>
+              <option value="marble surface, luxury feel">대리석 표면 (럭셔리)</option>
+              <option value="bright rooftop or farm field background">싱그러운 텃밭/농장</option>
+              <option value="greytone modern kitchen, minimal interior">그레이톤 모던 키친</option>
+              <option value="linen cloth, fabric texture background">린넨 패브릭 배경</option>
+            </select>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="step">3</div>
+        <div><h3>카메라 / 빛 / 톤</h3><p>세부 촬영 옵션을 설정하세요</p></div>
+      </div>
+      <table class="opt-table">
+        <tr>
+          <td class="lbl">프레이밍<small>화면 비율</small></td>
+          <td>
+            <select id="s6" onchange="go()">
+              <option value="">선택하기</option>
+              <option value="product tightly framed, filling 70-85% of frame">제품 꽉 채움 (70~85%)</option>
+              <option value="product centered, standard framing 50-70%">표준 (50~70%)</option>
+              <option value="wide framing with whitespace, banner crop">여백 확보 (배너용)</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">앵글<small>카메라 시점</small></td>
+          <td>
+            <select id="s7" onchange="go()">
+              <option value="">선택하기</option>
+              <option value="45-degree angle, hero product shot">45도 (대표)</option>
+              <option value="straight-on front view, eye level">정면 (정직한)</option>
+              <option value="top-down flat lay">탑뷰 (플랫레이)</option>
+              <option value="three-quarter view, 3/4 angle">3/4 (입체감)</option>
+              <option value="extreme close-up macro detail">클로즈업 (접사)</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">포커스<small>초점 선택</small></td>
+          <td>
+            <select id="s8" onchange="go()">
+              <option value="">선택하기</option>
+              <option value="full scene in sharp focus">전체 선명 (기본)</option>
+              <option value="shallow depth of field, soft bokeh background">아웃포커스 (배경 흐림)</option>
+              <option value="deep focus, foreground and background both sharp">딥 포커스 (전체)</option>
+              <option value="selective focus on product label or key detail">포인트 포커스 (라벨)</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">심도<small>초점 범위</small></td>
+          <td>
+            <select id="s9" onchange="go()">
+              <option value="">선택하기</option>
+              <option value="standard depth of field">기본 (표준)</option>
+              <option value="shallow depth of field, premium bokeh">얕은 심도 (프리미엄)</option>
+              <option value="deep focus, sharp front to back">딥 포커스 (검수용)</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">조명<small>빛 연출</small></td>
+          <td>
+            <select id="s10" onchange="go()">
+              <option value="">선택하기</option>
+              <option value="soft natural light, diffused daylight">자연광 (소프트)</option>
+              <option value="clean studio lighting, high-key bright">스튜디오 (하이키)</option>
+              <option value="premium side rim lighting, subtle shadow">프리미엄 무드 (은은)</option>
+              <option value="top flat light, even illumination">탑 라이트 (균일)</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">톤<small>색감 분위기</small></td>
+          <td>
+            <select id="s11" onchange="go()">
+              <option value="">선택하기</option>
+              <option value="neutral accurate color tone">뉴트럴 (정확)</option>
+              <option value="warm inviting tone, golden feel">웜 (따뜻한)</option>
+              <option value="cool fresh clean tone">쿨 (신선한)</option>
+              <option value="muted elegant tone, high-end premium">뮤트 (고급)</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">출력<small>컷 구성</small></td>
+          <td>
+            <select id="s12" onchange="go()">
+              <option value="">선택하기</option>
+              <option value="single hero shot, main product image">대표컷 1장</option>
+              <option value="2x2 grid, 4 angle variations">2×2 (4컷) - 앵글 변화</option>
+              <option value="3x3 grid, 9 diverse angle shots">3×3 (9컷) - 앵글 다양화</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">금지<small>제외 요소</small></td>
+          <td>
+            <select id="s13" onchange="go()">
+              <option value="">선택하기</option>
+              <option value="no text, no UI overlay, no watermarks">텍스트/UI 금지</option>
+              <option value="no CGI, photorealistic only">CG/저퀄리티 금지</option>
+              <option value="no busy background, no distracting elements">배경 지저분 금지</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">추가<small>직접 입력</small></td>
+          <td>
+            <input type="text" id="custom" placeholder="예: eco label, matte finish, 고급스러운..." oninput="go()" />
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl">레퍼런스<small>참고 스타일</small></td>
+          <td>
+            <select id="s14" onchange="go()">
+              <option value="">선택하기</option>
+              <option value="with reference style image provided">있음</option>
+              <option value="">없음</option>
+            </select>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- 오른쪽 -->
+  <div class="right-panel">
+    <div class="result-card">
+      <div class="result-head">
+        <h3>생성된 프롬프트</h3>
+        <div class="badge" id="badge">대기 중</div>
+      </div>
+      <div class="btn-top-row">
+        <button class="b-en" onclick="copyEn()">📋 영문 복사</button>
+        <button class="b-ko" onclick="copyKo()">📋 한글 복사</button>
+        <button class="b-reset" onclick="resetAll()">↺ 리셋</button>
+      </div>
+      <div class="result-body">
+        <div class="out-label">영문 프롬프트 (Midjourney / DALL·E 3 용)</div>
+        <div class="out-en ph" id="out-en">왼쪽에서 옵션을 선택하면 여기에 프롬프트가 실시간으로 생성됩니다.</div>
+        <div class="out-label" style="margin-top:12px;">한글 요약</div>
+        <div class="out-ko ph" id="out-ko">선택한 옵션이 한글로 표시됩니다.</div>
+        <div class="char-count" id="cnt"></div>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <strong>💡 쿠팡 · 스마트스토어 썸네일 활용 팁</strong>
+      생성된 프롬프트를 <b>Midjourney</b> 또는 <b>DALL·E 3</b>에 붙여넣으면 AI 상품 이미지를 만들 수 있어요.<br><br>
+      가장 좋은 방법: 실제 상품 사진에서 <b>누끼(배경 제거)</b> → AI 생성 배경에 합성하면 자연스럽고 쇼핑몰 정책에도 안전해요.
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SIDS = ['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','s12','s13','s14'];
+const KLABELS = ['카테고리','상태','촬영 연출','포장 상태','배경/장소','프레이밍','앵글','포커스','심도','조명','톤','출력','금지','레퍼런스'];
+const BASE = "High-end e-commerce product photography. Clean, minimalist composition with a single primary focus. Photorealistic textures and accurate material shaders; no stylized or artistic distortion. Pristine quality; 8k resolution; no text, logos, watermarks, UI elements, or borders.";
+
+function getLabel(id) {
+  const el = document.getElementById(id);
+  if (!el || !el.value) return '';
+  return el.options[el.selectedIndex].text;
+}
+
+function go() {
+  const vals = SIDS.map(id => document.getElementById(id).value).filter(v => v);
+  const custom = document.getElementById('custom').value.trim();
+  if (custom) vals.push(custom);
+
+  const koLabels = SIDS.map((id, i) => {
+    const lbl = getLabel(id);
+    return lbl ? KLABELS[i] + ': ' + lbl : '';
+  }).filter(v => v);
+  if (custom) koLabels.push('추가: ' + custom);
+
+  const enBox = document.getElementById('out-en');
+  const koBox = document.getElementById('out-ko');
+  const cnt = document.getElementById('cnt');
+  const badge = document.getElementById('badge');
+
+  if (!vals.length) {
+    enBox.textContent = '왼쪽에서 옵션을 선택하면 여기에 프롬프트가 실시간으로 생성됩니다.';
+    enBox.classList.add('ph');
+    koBox.textContent = '선택한 옵션이 한글로 표시됩니다.';
+    koBox.classList.add('ph');
+    cnt.textContent = '';
+    badge.textContent = '대기 중';
+    badge.style.background = '';
+    badge.style.color = '';
+    return;
+  }
+
+  const prompt = BASE + ' ' + vals.join('. ') + '.';
+  enBox.textContent = prompt;
+  enBox.classList.remove('ph');
+  koBox.textContent = koLabels.join(', ');
+  koBox.classList.remove('ph');
+
+  const l = prompt.length;
+  cnt.textContent = l + '자' + (l > 1800 ? ' ⚠ 권장 길이 초과' : '');
+  cnt.style.color = l > 1800 ? '#dc2626' : '#a8a8a5';
+  badge.textContent = '생성 완료 ✓';
+  badge.style.background = '#f0fdf4';
+  badge.style.color = '#15803d';
+}
+
+function flash(btn, on, off) {
+  btn.classList.add('ok'); btn.textContent = on;
+  setTimeout(() => { btn.classList.remove('ok'); btn.textContent = off; }, 1800);
+}
+function copyEn() {
+  const t = document.getElementById('out-en').textContent;
+  if (!t || t.includes('왼쪽에서')) return;
+  navigator.clipboard.writeText(t).then(() => flash(document.querySelector('.b-en'), '✓ 복사됨!', '📋 영문 복사'));
+}
+function copyKo() {
+  const t = document.getElementById('out-ko').textContent;
+  if (!t || t.includes('선택한 옵션')) return;
+  navigator.clipboard.writeText(t).then(() => flash(document.querySelector('.b-ko'), '✓ 복사됨!', '📋 한글 복사'));
+}
+function resetAll() {
+  SIDS.forEach(id => document.getElementById(id).value = '');
+  document.getElementById('custom').value = '';
+  go();
+}
+</script>
+</body>
+</html>
