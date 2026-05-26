@@ -6,320 +6,168 @@
 <title>AI 상품 프롬프트 생성기</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
-
 :root {
-  --bg: #f7f7f5;
-  --surface: #ffffff;
-  --border: #e8e5e0;
-  --text: #1c1c1a;
-  --text-sub: #6b6b68;
-  --text-hint: #a8a8a5;
-  --accent: #1a56db;
-  --accent-bg: #eff6ff;
-  --green: #0d9488;
-  --green-bg: #f0fdfa;
-  --amber-bg: #fffbeb;
-  --red-light: #fef2f2;
-  --red: #dc2626;
-  --radius: 10px;
-  --radius-lg: 16px;
-  --shadow: 0 1px 4px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+  --bg:#f7f7f5;--surface:#fff;--border:#e8e5e0;--text:#1c1c1a;--text-sub:#6b6b68;--text-hint:#a8a8a5;
+  --accent:#1a56db;--accent-bg:#eff6ff;--green:#0d9488;--green-bg:#f0fdfa;--amber-bg:#fffbeb;
+  --red-light:#fef2f2;--red:#dc2626;--radius:10px;--radius-lg:16px;
+  --shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
 }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;min-height:100vh;}
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* API 키 모달 */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.modal-overlay.hide{display:none;}
+.modal{background:#fff;border-radius:var(--radius-lg);padding:32px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:8px;}
+.modal p{font-size:13px;color:var(--text-sub);line-height:1.7;margin-bottom:20px;}
+.modal input{width:100%;font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#fafaf9;color:var(--text);outline:none;margin-bottom:8px;}
+.modal input:focus{border-color:var(--accent);}
+.modal-tip{font-size:11px;color:var(--text-hint);margin-bottom:16px;line-height:1.6;}
+.modal-btn{width:100%;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;padding:12px;border-radius:var(--radius);border:none;background:var(--accent);color:#fff;cursor:pointer;}
+.modal-btn:hover{background:#1648c0;}
 
-body {
-  font-family: 'Noto Sans KR', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 13px;
-  min-height: 100vh;
-}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.logo-text{font-size:15px;font-weight:700;}
+.logo-sub{font-size:11px;color:var(--text-hint);margin-left:4px;}
+.key-status{margin-left:auto;font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);cursor:pointer;color:var(--text-sub);}
+.key-status.ok{background:var(--green-bg);border-color:var(--green);color:var(--green);}
 
-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0 24px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 1px 4px rgba(0,0,0,.04);
-}
-.logo-text { font-size: 15px; font-weight: 700; }
-.logo-sub { font-size: 11px; color: var(--text-hint); margin-left: 4px; }
+.main{max-width:1080px;margin:0 auto;padding:24px 16px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+@media(max-width:720px){.main{grid-template-columns:1fr;}.right-panel{position:static!important;}}
+.left-panel{display:flex;flex-direction:column;gap:14px;}
 
-.main {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 24px 16px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  align-items: start;
-}
-@media(max-width:720px){
-  .main { grid-template-columns: 1fr; }
-  .right-panel { position: static !important; }
-}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;}
+.card-head{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.step{width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.card-head h3{font-size:13px;font-weight:700;}
+.card-head p{font-size:11px;color:var(--text-hint);margin-top:1px;}
 
-.left-panel { display: flex; flex-direction: column; gap: 14px; }
+/* 업로드 존 */
+.upload-zone{margin:16px;border:2px dashed var(--border);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-bg);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-icon{font-size:30px;margin-bottom:8px;}
+.upload-zone p{font-size:13px;font-weight:500;color:var(--text-sub);}
+.upload-zone small{font-size:11px;color:var(--text-hint);}
+.preview-wrap{margin:16px;display:none;flex-direction:column;gap:10px;}
+.preview-wrap.show{display:flex;}
+.preview-img{width:100%;max-height:200px;object-fit:contain;border-radius:var(--radius);border:1px solid var(--border);background:#fafaf9;}
+.preview-info{background:var(--green-bg);border:1px solid #99f6e4;border-radius:var(--radius);padding:10px 12px;font-size:12px;color:#0f766e;line-height:1.6;}
+.btn-change{font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-sub);cursor:pointer;align-self:flex-start;transition:all .15s;}
+.btn-change:hover{background:var(--bg);}
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.card-head {
-  padding: 13px 18px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.step {
-  width: 22px; height: 22px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 50%;
-  font-size: 11px;
-  font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.card-head h3 { font-size: 13px; font-weight: 700; }
-.card-head p { font-size: 11px; color: var(--text-hint); margin-top: 1px; }
+.opt-table{width:100%;border-collapse:collapse;}
+.opt-table tr{border-bottom:1px solid var(--border);}
+.opt-table tr:last-child{border-bottom:none;}
+.opt-table td{padding:8px 18px;vertical-align:middle;}
+.opt-table td.lbl{width:95px;font-size:11px;font-weight:500;color:var(--text-sub);white-space:nowrap;line-height:1.4;}
+.opt-table td.lbl small{display:block;font-size:10px;color:var(--text-hint);margin-top:1px;}
+select,input[type=text]{width:100%;font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:#fafaf9;color:var(--text);cursor:pointer;outline:none;transition:border-color .15s;}
+select:focus,input[type=text]:focus{border-color:var(--accent);background:#fff;}
+input[type=text]{cursor:text;}
 
-/* 테이블 */
-.opt-table { width: 100%; border-collapse: collapse; }
-.opt-table tr { border-bottom: 1px solid var(--border); }
-.opt-table tr:last-child { border-bottom: none; }
-.opt-table td { padding: 8px 18px; vertical-align: middle; }
-.opt-table td.lbl {
-  width: 95px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-sub);
-  white-space: nowrap;
-  line-height: 1.4;
-}
-.opt-table td.lbl small { display: block; font-size: 10px; color: var(--text-hint); margin-top: 1px; }
+.gen-btn{margin:16px;width:calc(100% - 32px);font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;padding:13px;border-radius:var(--radius);border:none;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;}
+.gen-btn:hover{background:#1648c0;transform:translateY(-1px);}
+.gen-btn:active{transform:translateY(0);}
+.gen-btn:disabled{background:#93c5fd;cursor:not-allowed;transform:none;}
 
-select, input[type=text] {
-  width: 100%;
-  font-family: 'Noto Sans KR', sans-serif;
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: #fafaf9;
-  color: var(--text);
-  cursor: pointer;
-  outline: none;
-  transition: border-color .15s;
-}
-select:focus, input[type=text]:focus { border-color: var(--accent); background: #fff; }
-input[type=text] { cursor: text; }
+.right-panel{position:sticky;top:76px;display:flex;flex-direction:column;gap:14px;}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;}
+.result-head{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.result-head h3{font-size:13px;font-weight:700;}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--accent-bg);color:var(--accent);}
+.btn-top-row{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;}
+.result-body{padding:16px 18px;}
 
-/* 오른쪽 */
-.right-panel { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 14px; }
+.empty-state{text-align:center;padding:40px 24px;color:var(--text-hint);}
+.empty-icon{font-size:36px;margin-bottom:10px;}
+.empty-state p{font-size:13px;line-height:1.7;}
+.loading-state{display:none;text-align:center;padding:36px 24px;}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-state p{font-size:13px;color:var(--text-sub);}
+.loading-dots::after{content:'';animation:dots 1.2s steps(4,end) infinite;}
+@keyframes dots{0%,20%{content:''}40%{content:'.'}60%{content:'..'}80%,100%{content:'...'}}
+.prompt-result{display:none;}
+.prompt-result.show{display:block;}
+.out-label{font-size:10px;font-weight:700;color:var(--text-hint);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px;}
+.out-en{background:#fafaf9;border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:12px;line-height:1.85;color:var(--text);min-height:140px;white-space:pre-wrap;word-break:break-word;}
+.out-ko{background:var(--green-bg);border:1px solid #99f6e4;border-radius:var(--radius);padding:10px 14px;font-size:12px;line-height:1.75;color:#0f766e;margin-top:10px;white-space:pre-wrap;word-break:break-word;}
+.char-count{font-size:11px;color:var(--text-hint);text-align:right;margin-top:5px;}
 
-.result-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; }
+button.btn{font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:500;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;}
+button.btn:hover{background:var(--bg);}
+button.btn:active{transform:scale(.97);}
+button.b-en{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
+button.b-ko{background:var(--green-bg);border-color:var(--green);color:var(--green);}
+button.b-re{background:#fff7ed;border-color:#f97316;color:#c2410c;}
+button.b-reset{background:var(--red-light);border-color:var(--red);color:var(--red);}
+.ok{background:#dcfce7!important;border-color:#16a34a!important;color:#15803d!important;}
 
-.result-head {
-  padding: 13px 18px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.result-head h3 { font-size: 13px; font-weight: 700; }
-.badge {
-  font-size: 10px; font-weight: 700;
-  padding: 3px 9px; border-radius: 20px;
-  background: var(--accent-bg); color: var(--accent);
-}
-
-.btn-top-row {
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--border);
-  display: flex; gap: 8px; flex-wrap: wrap;
-}
-
-.result-body { padding: 16px 18px; }
-
-.out-label {
-  font-size: 10px; font-weight: 700;
-  color: var(--text-hint);
-  letter-spacing: .07em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-.out-en {
-  background: #fafaf9;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  font-size: 12px;
-  line-height: 1.85;
-  color: var(--text);
-  min-height: 160px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.out-en.ph { color: var(--text-hint); font-style: italic; }
-.out-ko {
-  background: var(--green-bg);
-  border: 1px solid #99f6e4;
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  font-size: 12px;
-  line-height: 1.75;
-  color: #0f766e;
-  margin-top: 10px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.out-ko.ph { color: var(--text-hint); font-style: italic; }
-.char-count { font-size: 11px; color: var(--text-hint); text-align: right; margin-top: 5px; }
-
-button {
-  font-family: 'Noto Sans KR', sans-serif;
-  font-size: 12px; font-weight: 500;
-  padding: 6px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-  display: flex; align-items: center; gap: 5px;
-  transition: all .15s;
-}
-button:hover { background: var(--bg); }
-button:active { transform: scale(.97); }
-button.b-en { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
-button.b-ko { background: var(--green-bg); border-color: var(--green); color: var(--green); }
-button.b-reset { background: var(--red-light); border-color: var(--red); color: var(--red); }
-.ok { background: #dcfce7 !important; border-color: #16a34a !important; color: #15803d !important; }
-
-.tip-card {
-  background: var(--amber-bg);
-  border: 1px solid #fde68a;
-  border-radius: var(--radius-lg);
-  padding: 14px 18px;
-  font-size: 12px;
-  line-height: 1.75;
-  color: #78350f;
-}
-.tip-card strong { display: block; font-size: 13px; margin-bottom: 6px; }
+.tip-card{background:var(--amber-bg);border:1px solid #fde68a;border-radius:var(--radius-lg);padding:14px 18px;font-size:12px;line-height:1.75;color:#78350f;}
+.tip-card strong{display:block;font-size:13px;margin-bottom:6px;}
 </style>
 </head>
 <body>
+
+<!-- API 키 입력 모달 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>🔑 API 키 입력</h2>
+    <p>Claude API 키를 입력하면 상품 이미지를 자동으로 분석해서 맞춤 프롬프트를 생성해드려요.<br>키는 이 브라우저에만 저장되고 외부로 전송되지 않아요.</p>
+    <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." />
+    <div class="modal-tip">💡 console.anthropic.com → API 키 메뉴에서 발급받을 수 있어요. 한 번 입력하면 다음부터는 안 물어봐요.</div>
+    <button class="modal-btn" onclick="saveKey()">저장하고 시작하기</button>
+  </div>
+</div>
 
 <header>
   <span style="font-size:20px;">✨</span>
   <div>
     <span class="logo-text">AI 상품 프롬프트 생성기</span>
-    <span class="logo-sub">— 옵션 선택만으로 맞춤 프롬프트 자동 완성</span>
+    <span class="logo-sub">— 내 상품 이미지로 맞춤 프롬프트 자동 생성</span>
   </div>
+  <div class="key-status" id="key-status" onclick="changeKey()">🔑 API 키 변경</div>
 </header>
 
 <div class="main">
-
-  <!-- 왼쪽 -->
   <div class="left-panel">
 
+    <!-- STEP 1 이미지 업로드 -->
     <div class="card">
       <div class="card-head">
         <div class="step">1</div>
-        <div><h3>제품 카테고리</h3><p>판매하는 상품 종류를 선택하세요</p></div>
+        <div><h3>상품 이미지 업로드</h3><p>판매할 상품 사진을 올려주세요 — AI가 자동 분석합니다</p></div>
       </div>
-      <table class="opt-table">
-        <tr>
-          <td class="lbl">카테고리<small>제품 종류</small></td>
-          <td>
-            <select id="s1" onchange="go()">
-              <option value="">선택하기</option>
-              <optgroup label="── 생활용품 ──">
-                <option value="storage basket, home organizer box">수납함 / 정리함</option>
-                <option value="cleaning brush and tools set">청소 도구</option>
-                <option value="laundry detergent bottle, fabric softener">세탁 용품</option>
-                <option value="modern waste bin, recycling container">쓰레기통</option>
-                <option value="microfiber cleaning cloth, duster">극세사 걸레</option>
-                <option value="rubber household gloves">청소 장갑</option>
-                <option value="air freshener, odor eliminator spray">방향제 / 탈취제</option>
-              </optgroup>
-              <optgroup label="── 화장실용품 ──">
-                <option value="toothbrush and toothpaste set">칫솔 / 치약</option>
-                <option value="shampoo bottle and body wash set">샴푸 / 바디워시</option>
-                <option value="liquid hand soap dispenser">핸드워시 / 비누</option>
-                <option value="bathroom mat, non-slip bath rug">욕실 매트</option>
-                <option value="neatly folded soft bath towels">타월 / 수건</option>
-                <option value="glass corner bathroom shelf with chrome brackets">욕실 코너 유리 선반</option>
-                <option value="bathroom shelf caddy organizer">욕실 수납 선반</option>
-                <option value="toilet brush set, toilet cleaner">변기 청소 용품</option>
-                <option value="bath loofah, shower sponge, bath accessories">목욕 소품</option>
-              </optgroup>
-              <optgroup label="── 주방용품 ──">
-                <option value="non-stick frying pan and pot set">프라이팬 / 냄비</option>
-                <option value="professional kitchen knife and cutting board">칼 / 도마</option>
-                <option value="ceramic mixing bowls, dinnerware set">그릇 / 볼</option>
-                <option value="airtight food storage containers">밀폐용기</option>
-                <option value="dish soap, kitchen detergent bottle">주방 세제</option>
-                <option value="kitchen towel, dish cloth set">행주 / 주방타월</option>
-                <option value="cooking utensil set, spatula, ladle, tongs">조리도구 세트</option>
-                <option value="coffee dripper, pour-over kettle, tea set">커피 / 차 용품</option>
-              </optgroup>
-            </select>
-          </td>
-        </tr>
-        <tr>
-          <td class="lbl">상태<small>제품 표현</small></td>
-          <td>
-            <select id="s2" onchange="go()">
-              <option value="">선택하기</option>
-              <optgroup label="── 깔끔한 상태 ──">
-                <option value="brand new pristine condition, just unboxed">개봉 직후 새 제품</option>
-                <option value="neatly arranged, tidy and clean">가지런히 정돈된</option>
-                <option value="gleaming clean, freshly washed">깨끗하게 세척된</option>
-                <option value="minimalist display, simple and clean">미니멀하게 세팅</option>
-              </optgroup>
-              <optgroup label="── 라이프스타일 ──">
-                <option value="in-use lifestyle scene, natural everyday moment">실제 사용 중인 장면</option>
-                <option value="hands holding the product, demonstrating use">손으로 제품 잡은 장면</option>
-                <option value="water splashing, wet and fresh scene">물 튀기는 생동감</option>
-              </optgroup>
-              <optgroup label="── 포장 / 세트 ──">
-                <option value="original retail packaging display">원래 포장 그대로</option>
-                <option value="gift set arrangement, bundled product set">선물 세트 구성</option>
-                <option value="multiple products grouped, product family shot">여러 제품 묶음 샷</option>
-              </optgroup>
-            </select>
-          </td>
-        </tr>
-      </table>
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept="image/*" onchange="handleFile(this.files[0])">
+        <div class="upload-icon">📦</div>
+        <p>이미지를 끌어다 놓거나 클릭해서 선택</p>
+        <small>JPG, PNG, WEBP 지원</small>
+      </div>
+      <div class="preview-wrap" id="preview-wrap">
+        <img class="preview-img" id="preview-img" src="" alt="미리보기">
+        <div class="preview-info" id="preview-info">✅ 이미지 업로드 완료! 연출 컷을 선택하고 생성 버튼을 눌러주세요.</div>
+        <button class="btn-change" onclick="resetUpload()">↺ 다른 이미지로 변경</button>
+      </div>
     </div>
 
+    <!-- STEP 2 옵션 -->
     <div class="card">
       <div class="card-head">
         <div class="step">2</div>
-        <div><h3>촬영 / 배경 설정</h3><p>연출 방식과 배경을 선택하세요</p></div>
+        <div><h3>촬영 옵션 선택</h3><p>선택 안 해도 AI가 자동으로 최적 옵션을 결정해요</p></div>
       </div>
       <table class="opt-table">
         <tr>
           <td class="lbl">촬영 연출<small>장면 구성</small></td>
           <td>
-            <select id="s3" onchange="go()">
-              <option value="">선택하기</option>
+            <select id="o1">
+              <option value="">AI 자동 결정</option>
               <optgroup label="── 정적 컷 ──">
                 <option value="clean hero product still shot">제품 단독 스틸컷</option>
                 <option value="flat lay, overhead arranged composition">플랫레이 (탑뷰)</option>
-                <option value="floating product, levitation shot">공중 부양 연출</option>
                 <option value="macro close-up detail, texture emphasis">클로즈업 디테일</option>
               </optgroup>
               <optgroup label="── 동적 연출 ──">
@@ -336,159 +184,88 @@ button.b-reset { background: var(--red-light); border-color: var(--red); color: 
           </td>
         </tr>
         <tr>
-          <td class="lbl">포장 상태<small>패키징</small></td>
+          <td class="lbl">배경<small>세트 분위기</small></td>
           <td>
-            <select id="s4" onchange="go()">
-              <option value="">선택하기</option>
-              <optgroup label="── 유통/판매 포장 ──">
-                <option value="bundled with twine rope tie">짚/노끈으로 묶은 다발</option>
-                <option value="transparent plastic wrap packaging">투명 비닐 랩 포장</option>
-                <option value="fresh-keep zip bag packaging">신선 보관용 지퍼백</option>
-                <option value="eco-friendly paper label wrap">친환경 종이 띠지</option>
-              </optgroup>
-              <optgroup label="── 박스/대량 ──">
-                <option value="corrugated cardboard box, factory direct">골판지 박스</option>
-                <option value="wooden crate, vintage rustic packaging">나무 궤짝 (빈티지)</option>
-              </optgroup>
-            </select>
-          </td>
-        </tr>
-        <tr>
-          <td class="lbl">배경/장소<small>세트 분위기</small></td>
-          <td>
-            <select id="s5" onchange="go()">
-              <option value="">선택하기</option>
-              <option value="pure white seamless studio background">깔끔한 화이트 스튜디오</option>
-              <option value="dark stone surface, premium moody background">차분한 다크 스톤 (고급)</option>
-              <option value="warm wooden kitchen countertop surface">따뜻한 원목 주방</option>
-              <option value="modern bathroom tiles, clean white grout">모던 욕실 타일</option>
-              <option value="marble surface, luxury feel">대리석 표면 (럭셔리)</option>
-              <option value="bright rooftop or farm field background">싱그러운 텃밭/농장</option>
-              <option value="greytone modern kitchen, minimal interior">그레이톤 모던 키친</option>
-              <option value="linen cloth, fabric texture background">린넨 패브릭 배경</option>
-            </select>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <div class="card">
-      <div class="card-head">
-        <div class="step">3</div>
-        <div><h3>카메라 / 빛 / 톤</h3><p>세부 촬영 옵션을 설정하세요</p></div>
-      </div>
-      <table class="opt-table">
-        <tr>
-          <td class="lbl">프레이밍<small>화면 비율</small></td>
-          <td>
-            <select id="s6" onchange="go()">
-              <option value="">선택하기</option>
-              <option value="product tightly framed, filling 70-85% of frame">제품 꽉 채움 (70~85%)</option>
-              <option value="product centered, standard framing 50-70%">표준 (50~70%)</option>
-              <option value="wide framing with whitespace, banner crop">여백 확보 (배너용)</option>
+            <select id="o2">
+              <option value="">AI 자동 결정</option>
+              <option value="pure white seamless studio background">화이트 스튜디오</option>
+              <option value="dark stone surface, premium moody background">다크 스톤 (고급)</option>
+              <option value="warm wooden surface">따뜻한 원목</option>
+              <option value="modern bathroom tiles">모던 욕실 타일</option>
+              <option value="marble surface, luxury feel">대리석 (럭셔리)</option>
+              <option value="linen cloth, fabric texture background">린넨 패브릭</option>
             </select>
           </td>
         </tr>
         <tr>
           <td class="lbl">앵글<small>카메라 시점</small></td>
           <td>
-            <select id="s7" onchange="go()">
-              <option value="">선택하기</option>
+            <select id="o3">
+              <option value="">AI 자동 결정</option>
               <option value="45-degree angle, hero product shot">45도 (대표)</option>
-              <option value="straight-on front view, eye level">정면 (정직한)</option>
-              <option value="top-down flat lay">탑뷰 (플랫레이)</option>
-              <option value="three-quarter view, 3/4 angle">3/4 (입체감)</option>
-              <option value="extreme close-up macro detail">클로즈업 (접사)</option>
-            </select>
-          </td>
-        </tr>
-        <tr>
-          <td class="lbl">포커스<small>초점 선택</small></td>
-          <td>
-            <select id="s8" onchange="go()">
-              <option value="">선택하기</option>
-              <option value="full scene in sharp focus">전체 선명 (기본)</option>
-              <option value="shallow depth of field, soft bokeh background">아웃포커스 (배경 흐림)</option>
-              <option value="deep focus, foreground and background both sharp">딥 포커스 (전체)</option>
-              <option value="selective focus on product label or key detail">포인트 포커스 (라벨)</option>
-            </select>
-          </td>
-        </tr>
-        <tr>
-          <td class="lbl">심도<small>초점 범위</small></td>
-          <td>
-            <select id="s9" onchange="go()">
-              <option value="">선택하기</option>
-              <option value="standard depth of field">기본 (표준)</option>
-              <option value="shallow depth of field, premium bokeh">얕은 심도 (프리미엄)</option>
-              <option value="deep focus, sharp front to back">딥 포커스 (검수용)</option>
+              <option value="straight-on front view">정면</option>
+              <option value="top-down flat lay">탑뷰</option>
+              <option value="three-quarter view">3/4 (입체감)</option>
+              <option value="extreme close-up macro">클로즈업</option>
             </select>
           </td>
         </tr>
         <tr>
           <td class="lbl">조명<small>빛 연출</small></td>
           <td>
-            <select id="s10" onchange="go()">
-              <option value="">선택하기</option>
-              <option value="soft natural light, diffused daylight">자연광 (소프트)</option>
-              <option value="clean studio lighting, high-key bright">스튜디오 (하이키)</option>
-              <option value="premium side rim lighting, subtle shadow">프리미엄 무드 (은은)</option>
-              <option value="top flat light, even illumination">탑 라이트 (균일)</option>
+            <select id="o4">
+              <option value="">AI 자동 결정</option>
+              <option value="soft natural daylight">자연광 (소프트)</option>
+              <option value="clean studio high-key lighting">스튜디오 (하이키)</option>
+              <option value="premium side rim lighting">프리미엄 무드</option>
+              <option value="top flat even lighting">탑 라이트 (균일)</option>
             </select>
           </td>
         </tr>
         <tr>
           <td class="lbl">톤<small>색감 분위기</small></td>
           <td>
-            <select id="s11" onchange="go()">
-              <option value="">선택하기</option>
-              <option value="neutral accurate color tone">뉴트럴 (정확)</option>
-              <option value="warm inviting tone, golden feel">웜 (따뜻한)</option>
-              <option value="cool fresh clean tone">쿨 (신선한)</option>
-              <option value="muted elegant tone, high-end premium">뮤트 (고급)</option>
+            <select id="o5">
+              <option value="">AI 자동 결정</option>
+              <option value="neutral accurate color">뉴트럴 (정확)</option>
+              <option value="warm golden tone">웜 (따뜻한)</option>
+              <option value="cool fresh tone">쿨 (신선한)</option>
+              <option value="muted premium tone">뮤트 (고급)</option>
             </select>
           </td>
         </tr>
         <tr>
-          <td class="lbl">출력<small>컷 구성</small></td>
+          <td class="lbl">프레이밍<small>화면 비율</small></td>
           <td>
-            <select id="s12" onchange="go()">
-              <option value="">선택하기</option>
-              <option value="single hero shot, main product image">대표컷 1장</option>
-              <option value="2x2 grid, 4 angle variations">2×2 (4컷) - 앵글 변화</option>
-              <option value="3x3 grid, 9 diverse angle shots">3×3 (9컷) - 앵글 다양화</option>
+            <select id="o6">
+              <option value="">AI 자동 결정</option>
+              <option value="product filling 70-85% of frame">꽉 채움 (70~85%)</option>
+              <option value="standard framing 50-70%">표준 (50~70%)</option>
+              <option value="wide framing with whitespace">여백 확보 (배너용)</option>
             </select>
           </td>
         </tr>
         <tr>
           <td class="lbl">금지<small>제외 요소</small></td>
           <td>
-            <select id="s13" onchange="go()">
+            <select id="o7">
               <option value="">선택하기</option>
-              <option value="no text, no UI overlay, no watermarks">텍스트/UI 금지</option>
+              <option value="no text, no watermarks, no UI elements">텍스트/UI 금지</option>
               <option value="no CGI, photorealistic only">CG/저퀄리티 금지</option>
-              <option value="no busy background, no distracting elements">배경 지저분 금지</option>
+              <option value="no busy background, clutter-free">배경 지저분 금지</option>
             </select>
           </td>
         </tr>
         <tr>
           <td class="lbl">추가<small>직접 입력</small></td>
-          <td>
-            <input type="text" id="custom" placeholder="예: eco label, matte finish, 고급스러운..." oninput="go()" />
-          </td>
-        </tr>
-        <tr>
-          <td class="lbl">레퍼런스<small>참고 스타일</small></td>
-          <td>
-            <select id="s14" onchange="go()">
-              <option value="">선택하기</option>
-              <option value="with reference style image provided">있음</option>
-              <option value="">없음</option>
-            </select>
-          </td>
+          <td><input type="text" id="o8" placeholder="예: 친환경 느낌, 고급스러운, 한국 브랜드..."></td>
         </tr>
       </table>
     </div>
+
+    <button class="gen-btn" id="gen-btn" onclick="generate()" disabled>
+      ✨ 맞춤 프롬프트 생성하기
+    </button>
 
   </div>
 
@@ -500,79 +277,166 @@ button.b-reset { background: var(--red-light); border-color: var(--red); color: 
         <div class="badge" id="badge">대기 중</div>
       </div>
       <div class="btn-top-row">
-        <button class="b-en" onclick="copyEn()">📋 영문 복사</button>
-        <button class="b-ko" onclick="copyKo()">📋 한글 복사</button>
-        <button class="b-reset" onclick="resetAll()">↺ 리셋</button>
+        <button class="btn b-en" onclick="copyEn()">📋 영문 복사</button>
+        <button class="btn b-ko" onclick="copyKo()">📋 한글 복사</button>
+        <button class="btn b-re" onclick="generate()">🔄 다시 생성</button>
+        <button class="btn b-reset" onclick="resetAll()">↺ 리셋</button>
       </div>
       <div class="result-body">
-        <div class="out-label">영문 프롬프트 (Midjourney / DALL·E 3 용)</div>
-        <div class="out-en ph" id="out-en">왼쪽에서 옵션을 선택하면 여기에 프롬프트가 실시간으로 생성됩니다.</div>
-        <div class="out-label" style="margin-top:12px;">한글 요약</div>
-        <div class="out-ko ph" id="out-ko">선택한 옵션이 한글로 표시됩니다.</div>
-        <div class="char-count" id="cnt"></div>
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">🖼</div>
+          <p>상품 이미지를 업로드하고<br>생성 버튼을 눌러주세요</p>
+        </div>
+        <div class="loading-state" id="loading-state">
+          <div class="spinner"></div>
+          <p>상품을 분석하고 프롬프트 생성 중<span class="loading-dots"></span></p>
+        </div>
+        <div class="prompt-result" id="prompt-result">
+          <div class="out-label">영문 프롬프트 (Midjourney / DALL·E 3 용)</div>
+          <div class="out-en" id="out-en"></div>
+          <div class="out-label" style="margin-top:12px;">한글 요약</div>
+          <div class="out-ko" id="out-ko"></div>
+          <div class="char-count" id="cnt"></div>
+        </div>
       </div>
     </div>
-
     <div class="tip-card">
       <strong>💡 쿠팡 · 스마트스토어 썸네일 활용 팁</strong>
       생성된 프롬프트를 <b>Midjourney</b> 또는 <b>DALL·E 3</b>에 붙여넣으면 AI 상품 이미지를 만들 수 있어요.<br><br>
       가장 좋은 방법: 실제 상품 사진에서 <b>누끼(배경 제거)</b> → AI 생성 배경에 합성하면 자연스럽고 쇼핑몰 정책에도 안전해요.
     </div>
   </div>
-
 </div>
 
 <script>
-const SIDS = ['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','s12','s13','s14'];
-const KLABELS = ['카테고리','상태','촬영 연출','포장 상태','배경/장소','프레이밍','앵글','포커스','심도','조명','톤','출력','금지','레퍼런스'];
-const BASE = "High-end e-commerce product photography. Clean, minimalist composition with a single primary focus. Photorealistic textures and accurate material shaders; no stylized or artistic distortion. Pristine quality; 8k resolution; no text, logos, watermarks, UI elements, or borders.";
+let imageBase64 = null;
+let imageMime = 'image/jpeg';
 
-function getLabel(id) {
-  const el = document.getElementById(id);
-  if (!el || !el.value) return '';
-  return el.options[el.selectedIndex].text;
+// 모달 처리
+function checkKey() {
+  const key = localStorage.getItem('claude_api_key');
+  if (!key) {
+    document.getElementById('modal').classList.remove('hide');
+  } else {
+    document.getElementById('modal').classList.add('hide');
+    document.getElementById('key-status').classList.add('ok');
+    document.getElementById('key-status').textContent = '🔑 API 키 연결됨';
+  }
+}
+function saveKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key.startsWith('sk-ant-')) { alert('올바른 API 키를 입력해주세요.'); return; }
+  localStorage.setItem('claude_api_key', key);
+  checkKey();
+}
+function changeKey() {
+  localStorage.removeItem('claude_api_key');
+  document.getElementById('api-key-input').value = '';
+  checkKey();
+}
+checkKey();
+
+// 드래그앤드롭
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) handleFile(f);
+});
+
+function handleFile(file) {
+  if (!file) return;
+  imageMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = e => {
+    imageBase64 = e.target.result.split(',')[1];
+    document.getElementById('preview-img').src = e.target.result;
+    document.getElementById('upload-zone').style.display = 'none';
+    document.getElementById('preview-wrap').classList.add('show');
+    document.getElementById('gen-btn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+function resetUpload() {
+  imageBase64 = null;
+  document.getElementById('file-input').value = '';
+  document.getElementById('upload-zone').style.display = 'block';
+  document.getElementById('preview-wrap').classList.remove('show');
+  document.getElementById('gen-btn').disabled = true;
+}
+function resetAll() {
+  resetUpload();
+  document.getElementById('empty-state').style.display = 'block';
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('prompt-result').classList.remove('show');
+  document.getElementById('badge').textContent = '대기 중';
+  document.getElementById('badge').style.background = '';
+  document.getElementById('badge').style.color = '';
 }
 
-function go() {
-  const vals = SIDS.map(id => document.getElementById(id).value).filter(v => v);
-  const custom = document.getElementById('custom').value.trim();
-  if (custom) vals.push(custom);
+async function generate() {
+  if (!imageBase64) return;
+  const key = localStorage.getItem('claude_api_key');
+  if (!key) { checkKey(); return; }
 
-  const koLabels = SIDS.map((id, i) => {
-    const lbl = getLabel(id);
-    return lbl ? KLABELS[i] + ': ' + lbl : '';
-  }).filter(v => v);
-  if (custom) koLabels.push('추가: ' + custom);
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('loading-state').style.display = 'block';
+  document.getElementById('prompt-result').classList.remove('show');
+  document.getElementById('badge').textContent = '생성 중...';
+  document.getElementById('gen-btn').disabled = true;
 
-  const enBox = document.getElementById('out-en');
-  const koBox = document.getElementById('out-ko');
-  const cnt = document.getElementById('cnt');
-  const badge = document.getElementById('badge');
+  const opts = ['o1','o2','o3','o4','o5','o6','o7'].map(id => document.getElementById(id).value).filter(Boolean);
+  const extra = document.getElementById('o8').value.trim();
+  if (extra) opts.push(extra);
 
-  if (!vals.length) {
-    enBox.textContent = '왼쪽에서 옵션을 선택하면 여기에 프롬프트가 실시간으로 생성됩니다.';
-    enBox.classList.add('ph');
-    koBox.textContent = '선택한 옵션이 한글로 표시됩니다.';
-    koBox.classList.add('ph');
-    cnt.textContent = '';
-    badge.textContent = '대기 중';
-    badge.style.background = '';
-    badge.style.color = '';
-    return;
+  const systemPrompt = `당신은 e-commerce 상품 이미지 전문 AI 프롬프트 생성기입니다.
+사용자가 상품 이미지를 업로드하면 상품을 정확히 분석하고 고품질 영문 프롬프트를 생성하세요.
+반드시 아래 JSON 형식만 출력하세요 (마크다운 없이):
+{"product_analysis":"상품 분석 (한글 2-3문장)","prompt_en":"영문 프롬프트 전체","prompt_ko":"한글 요약 (2-3문장)"}`;
+
+  const userMsg = `이 상품 이미지를 분석하고 쇼핑몰 썸네일용 AI 이미지 생성 프롬프트를 만들어주세요.
+${opts.length ? '사용자 선택 옵션: ' + opts.join(', ') : ''}
+영문 프롬프트는 반드시 "High-end e-commerce product photography. Clean, minimalist composition. Photorealistic; 8k resolution; no text, logos, watermarks."로 시작하고 이 상품의 특성에 맞게 구체적으로 이어서 작성하세요.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: imageMime, data: imageBase64 } },
+          { type: 'text', text: userMsg }
+        ]}]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw = data.content?.[0]?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    document.getElementById('preview-info').textContent = '🔍 ' + parsed.product_analysis;
+    document.getElementById('out-en').textContent = parsed.prompt_en;
+    document.getElementById('out-ko').textContent = parsed.prompt_ko;
+    const l = parsed.prompt_en.length;
+    document.getElementById('cnt').textContent = l + '자' + (l > 1800 ? ' ⚠ 권장 길이 초과' : '');
+    document.getElementById('badge').textContent = '생성 완료 ✓';
+    document.getElementById('badge').style.background = '#f0fdf4';
+    document.getElementById('badge').style.color = '#15803d';
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('prompt-result').classList.add('show');
+  } catch(err) {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('empty-state').innerHTML = '<div style="font-size:36px;margin-bottom:10px;">⚠️</div><p>오류가 발생했어요.<br><small style="color:#ef4444">' + err.message + '</small></p>';
+    document.getElementById('badge').textContent = '오류';
   }
-
-  const prompt = BASE + ' ' + vals.join('. ') + '.';
-  enBox.textContent = prompt;
-  enBox.classList.remove('ph');
-  koBox.textContent = koLabels.join(', ');
-  koBox.classList.remove('ph');
-
-  const l = prompt.length;
-  cnt.textContent = l + '자' + (l > 1800 ? ' ⚠ 권장 길이 초과' : '');
-  cnt.style.color = l > 1800 ? '#dc2626' : '#a8a8a5';
-  badge.textContent = '생성 완료 ✓';
-  badge.style.background = '#f0fdf4';
-  badge.style.color = '#15803d';
+  document.getElementById('gen-btn').disabled = false;
 }
 
 function flash(btn, on, off) {
@@ -581,18 +445,13 @@ function flash(btn, on, off) {
 }
 function copyEn() {
   const t = document.getElementById('out-en').textContent;
-  if (!t || t.includes('왼쪽에서')) return;
+  if (!t) return;
   navigator.clipboard.writeText(t).then(() => flash(document.querySelector('.b-en'), '✓ 복사됨!', '📋 영문 복사'));
 }
 function copyKo() {
   const t = document.getElementById('out-ko').textContent;
-  if (!t || t.includes('선택한 옵션')) return;
+  if (!t) return;
   navigator.clipboard.writeText(t).then(() => flash(document.querySelector('.b-ko'), '✓ 복사됨!', '📋 한글 복사'));
-}
-function resetAll() {
-  SIDS.forEach(id => document.getElementById(id).value = '');
-  document.getElementById('custom').value = '';
-  go();
 }
 </script>
 </body>
